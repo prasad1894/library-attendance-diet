@@ -1,0 +1,2899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSM Attendance</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#f4f6f9;
+    padding:15px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+.card{
+    background:#fff;
+    padding:15px;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+h2{
+    text-align:center;
+    margin-bottom:12px;
+}
+
+/* DATE */
+.info{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    margin-bottom:15px;
+    font-weight:bold;
+    font-size:15px;
+}
+
+/* CLASS SELECT */
+#classSelect{
+    width:100%;
+    height:42px;
+    padding:0 12px;
+    margin-bottom:15px;
+    border:1px solid #ccc;
+    border-radius:8px;
+    font-size:16px;
+    background:white;
+    color:#333;
+}
+
+/* TOP BUTTONS */
+.top-buttons{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+/* TOP BUTTONS + ATTENDANCE MODE SAME SIZE */
+.top-buttons .action,
+#attendanceMode{
+    width:100%;
+    height:40px;
+    padding:0 12px;
+    margin:0;
+    border-radius:8px;
+    box-sizing:border-box;
+    font-size:15px;
+    font-weight:bold;
+}
+
+/* NORMAL ACTION BUTTON */
+.action{
+    border:none;
+    padding:12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:15px;
+    color:white;
+}
+
+/* LOAD STUDENTS */
+.copy-present{
+    background:#4caf50;
+}
+
+/* COPY ABSENTEES */
+.copy-absent{
+    background:#ff9800;
+}
+
+/* COPY REPORT */
+.copy-report{
+    background:#673ab7;
+}
+
+/* ATTENDANCE MODE */
+#attendanceMode{
+    border:2px solid #f44336;
+    background:#ffebee;
+    color:#d32f2f;
+    cursor:pointer;
+    outline:none;
+    transition:.2s;
+}
+
+/* STATS */
+.stats{
+    display:flex;
+    justify-content:space-around;
+    margin-bottom:15px;
+    gap:10px;
+}
+
+.stats div{
+    flex:1;
+    background:#f5f5f5;
+    padding:12px;
+    text-align:center;
+    border-radius:10px;
+    font-size:18px;
+    font-weight:bold;
+}
+
+/* STUDENT GRID */
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(90px,1fr));
+    gap:8px;
+}
+
+/* STUDENT BUTTON */
+.roll{
+    border:none;
+    border-radius:8px;
+    padding:8px 4px;
+    background:white;
+    color:black;
+    font-weight:bold;
+    cursor:pointer;
+    transition:.2s;
+    border:1px solid #ccc;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:58px;
+}
+
+.student-name{
+    font-size:5px;
+    font-weight:normal;
+    line-height:13px;
+    text-align:center;
+    margin-bottom:3px;
+    opacity:0.8;
+}
+
+.student-roll{
+    font-size:15px;
+    font-weight:bold;
+    line-height:13px;
+    text-align:center;
+    margin-bottom:3px;    
+}
+
+/* ABSENT */
+.roll.absent{
+    background:#f44336;
+    color:white;
+}
+
+/* PRESENT */
+.roll.present{
+    background:#4caf50;
+    color:white;
+}
+
+/* BOTTOM BUTTONS */
+.buttons{
+    margin-top:20px;
+    display:grid;
+    gap:10px;
+}
+
+/* TEXTAREA */
+textarea{
+    width:100%;
+    height:120px;
+    margin-top:15px;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    resize:none;
+}
+
+/* MANAGE CLASSES */
+#manageBox{
+    margin-top:15px;
+}
+
+/* MOBILE */
+@media(max-width:500px){
+
+    body{
+        padding:8px;
+    }
+
+    .card{
+        padding:12px;
+        border-radius:10px;
+    }
+
+    h2{
+        font-size:21px;
+    }
+
+    #classSelect{
+        height:42px;
+        font-size:15px;
+    }
+
+    .top-buttons{
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+        margin-bottom:20px;
+    }
+
+    .top-buttons .action,
+    #attendanceMode{
+        height:40px;
+        font-size:14px;
+        padding:0 8px;
+    }
+
+    .stats{
+        gap:8px;
+        margin-bottom:15px;
+    }
+
+    .stats div{
+        padding:10px 5px;
+        font-size:16px;
+    }
+
+    .grid{
+        grid-template-columns:repeat(auto-fill,minmax(48px,1fr));
+        gap:6px;
+    }
+
+    .roll{
+        padding:11px 0;
+        font-size:13px;
+    }
+
+}
+
+    /* ==========================================
+   CSM ATTENDANCE — RESPONSIVE UI ENHANCEMENT
+   Existing roll-number button styles preserved
+========================================== */
+
+    :root {
+        --ui-primary: #3157d5;
+        --ui-primary-dark: #2444b3;
+        --ui-surface: #ffffff;
+        --ui-background: #f2f5fb;
+        --ui-text: #19243a;
+        --ui-muted: #667085;
+        --ui-border: #e2e7f0;
+        --ui-radius: 16px;
+    }
+
+    html {
+        min-height: 100%;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        padding: 24px;
+        color: var(--ui-text);
+        background:
+            radial-gradient(ellipse at top left, #e2eaff 0, transparent 42%),
+            var(--ui-background);
+        line-height: 1.5;
+    }
+
+    .container {
+        max-width: 1050px;
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    .card {
+        padding: 24px;
+        background: var(--ui-surface);
+        border: 1px solid rgba(220, 227, 240, 0.9);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(35, 53, 95, 0.07);
+    }
+
+    h2 {
+        color: #203d85;
+        font-size: 27px;
+        font-weight: 800;
+        letter-spacing: -0.6px;
+        margin-bottom: 22px;
+    }
+
+    h3 {
+        margin-bottom: 14px;
+        color: #243b70;
+        font-size: 19px;
+    }
+
+    /* DATE AREA */
+    .info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        padding: 16px;
+        background: #f7f9ff;
+        border: 1px solid #e4eaff;
+        border-radius: 14px;
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+
+    #date {
+        color: var(--ui-primary);
+        font-weight: 800;
+    }
+
+    #attendanceDate,
+    #attendanceMonth,
+    #classSelect {
+        max-width: 100%;
+        min-width: 0;
+        color: var(--ui-text);
+        background-color: #fff;
+        border: 1px solid #d6deec;
+        border-radius: 10px;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #attendanceDate:focus,
+    #attendanceMonth:focus,
+    #classSelect:focus,
+    textarea:focus {
+        border-color: var(--ui-primary);
+        box-shadow: 0 0 0 3px rgba(49, 87, 213, 0.12);
+    }
+
+    #classSelect {
+        height: 48px;
+        margin-bottom: 18px;
+        padding: 0 14px;
+        font-weight: 600;
+    }
+
+    /* ACTION BUTTON AREA */
+    .top-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+    }
+
+    .top-buttons .action,
+    .top-buttons #attendanceMode {
+        width: 100%;
+        min-width: 0;
+        min-height: 46px;
+        height: auto;
+        padding: 10px 12px;
+        border-radius: 11px;
+        font-size: 14px;
+        line-height: 1.35;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .action {
+        min-height: 46px;
+        padding: 12px 16px;
+        border: 1px solid transparent;
+        border-radius: 11px;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.4;
+        box-shadow: 0 2px 5px rgba(30, 45, 80, 0.07);
+        transition:
+            transform 0.16s ease,
+            box-shadow 0.16s ease,
+            filter 0.16s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .action:hover {
+        filter: brightness(0.96);
+        box-shadow: 0 5px 12px rgba(30, 45, 80, 0.12);
+    }
+
+    .action:active {
+        transform: scale(0.985);
+    }
+
+    .action:focus-visible {
+        outline: 3px solid rgba(49, 87, 213, 0.35);
+        outline-offset: 3px;
+    }
+
+    .action:disabled {
+        opacity: 0.65;
+        cursor: wait;
+        transform: none;
+    }
+
+    /* Keep the existing Mark Absentees / Mark Presentees design.
+    Only improve focus and touch usability. */
+    #attendanceMode {
+        min-height: 46px;
+        padding: 8px 12px;
+        border-radius: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+
+    /* PRESENT / ABSENT SUMMARY */
+    .stats {
+        display: flex;
+        gap: 14px;
+        margin: 20px 0;
+    }
+
+    .stats div {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 5px;
+        min-width: 0;
+        padding: 16px 10px;
+        border: 1px solid var(--ui-border);
+        border-radius: 14px;
+        background: #f8faff;
+        color: var(--ui-text);
+        font-size: 16px;
+        box-shadow: 0 2px 8px rgba(30, 45, 80, 0.035);
+    }
+
+    #presentCount {
+        color: #16834a;
+    }
+
+    #absentCount {
+        color: #d93636;
+    }
+
+    /*
+    IMPORTANT:
+    No overrides for .grid, .roll, .roll.present,
+    .roll.absent, .student-roll or .student-name.
+    Your student buttons retain their existing CSS.
+    */
+
+    /* LOWER ACTIONS */
+    .buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .buttons > .action {
+        width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    /* Let important export actions occupy a full row */
+    .buttons > label {
+        grid-column: 1 / -1;
+        min-width: 0;
+        background: #f8faff;
+        border-color: var(--ui-border) !important;
+        border-radius: 12px !important;
+        overflow-wrap: anywhere;
+    }
+
+    /* REPORT PREVIEW */
+    #preview {
+        display: block;
+        width: 100%;
+        min-height: 150px;
+        height: 150px;
+        margin-top: 20px;
+        padding: 15px;
+        color: #27344b;
+        background: #f8faff;
+        border: 1px solid var(--ui-border);
+        border-radius: 12px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 13px;
+        line-height: 1.7;
+        overflow-wrap: anywhere;
+    }
+
+    /* MANAGE CLASSES */
+    #manageBox {
+        margin: 18px 0;
+    }
+
+    #manageBox > .card {
+        padding: 18px;
+        background: #fbfcff;
+        border-radius: 15px;
+    }
+
+    #classList > div {
+        margin-bottom: 10px;
+        padding: 14px !important;
+        background: #fff;
+        border: 1px solid var(--ui-border);
+        border-radius: 12px;
+        overflow-wrap: anywhere;
+    }
+
+    #manageBox button {
+        min-height: 40px;
+        margin: 5px 5px 5px 0;
+        padding: 9px 13px;
+        border: 1px solid #dce3f0;
+        border-radius: 9px;
+        background: #edf2ff;
+        color: #2444a0;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    #manageBox > .card > .action {
+        width: 100%;
+        margin: 7px 0;
+        color: #fff;
+    }
+
+    /* FOOTER */
+    footer {
+        padding: 20px 0 4px;
+        color: var(--ui-muted);
+        text-align: center;
+        font-size: 12px;
+    }
+
+    /* TABLET */
+    @media (min-width: 501px) and (max-width: 800px) {
+        body {
+            padding: 16px;
+        }
+
+        .card {
+            padding: 20px;
+        }
+
+        .top-buttons,
+        .buttons {
+            gap: 10px;
+        }
+    }
+
+    /* MOBILE */
+    @media (max-width: 500px) {
+        body {
+            padding: 9px;
+        }
+
+        .container {
+            width: 100%;
+        }
+
+        .card {
+            padding: 13px;
+            border-radius: 15px;
+        }
+
+        h2 {
+            margin-bottom: 16px;
+            font-size: 23px;
+        }
+
+        h3 {
+            font-size: 18px;
+        }
+
+        .info {
+            padding: 13px 9px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        #attendanceDate {
+            width: 100%;
+            max-width: 270px;
+        }
+
+        #classSelect {
+            height: 46px;
+            margin-bottom: 14px;
+            font-size: 14px;
+        }
+
+        .top-buttons {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .top-buttons .action,
+        .top-buttons #attendanceMode {
+            min-height: 44px;
+            padding: 9px 7px;
+            font-size: 12px;
+        }
+
+        .stats {
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .stats div {
+            padding: 12px 5px;
+            border-radius: 11px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .buttons {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 9px;
+            margin-top: 20px;
+            padding-top: 16px;
+        }
+
+        .buttons > .action {
+            min-height: 45px;
+            padding: 12px;
+            font-size: 14px;
+        }
+
+        .buttons > label {
+            grid-column: 1;
+        }
+
+        #preview {
+            min-height: 140px;
+            height: 140px;
+            padding: 11px;
+            font-size: 12px;
+        }
+
+        #manageBox > .card {
+            padding: 12px;
+        }
+    }
+
+    /* ACCESSIBILITY */
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+
+        .action,
+        #attendanceDate,
+        #attendanceMonth,
+        #classSelect {
+            transition: none;
+        }
+    }
+
+    
+/* ===== Modern Attendance Date Panel ===== */
+
+    #selectedDate,
+    #attendanceDate,
+    input[type="date"] {
+    max-width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+    }
+
+    /* Date-related labels and text */
+    .date-section,
+    .date-filter,
+    .date-container {
+    background: linear-gradient(135deg, #f0f7ff, #f8faff);
+    border: 1px solid #d7e6fb;
+    border-radius: 16px;
+    padding: 16px;
+    margin: 14px 0;
+    }
+
+    /* Date inputs */
+    input[type="date"] {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 11px;
+    background: #ffffff;
+    color: #172554;
+    font-size: 15px;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="date"]:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+    }
+
+    /* Password and future-date notice */
+    .date-warning,
+    .date-note,
+    .date-help {
+    display: block;
+    padding: 11px 13px;
+    margin-top: 10px;
+    border-radius: 10px;
+    background: #fff7e6;
+    border: 1px solid #f5d28b;
+    color: #854d0e;
+    font-size: 13px;
+    line-height: 1.6;
+    }
+
+    /* Mobile layout */
+    @media (max-width: 600px) {
+    .date-section,
+    .date-filter,
+    .date-container {
+        padding: 12px;
+        border-radius: 13px;
+    }
+
+    input[type="date"] {
+        font-size: 16px;
+        min-height: 48px;
+    }
+
+    .date-warning,
+    .date-note,
+    .date-help {
+        font-size: 12px;
+    }
+    }
+
+
+    /* Beautiful Selected Date Section */
+    .info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 18px 12px;
+        margin: 15px 0;
+        background: linear-gradient(135deg, #eaf1ff, #f8faff);
+        border: 1px solid #cbdcff;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(49, 87, 213, 0.10);
+        text-align: center;
+        line-height: 1.7;
+    }
+
+    #date {
+        color: #2444b3;
+        font-size: 17px;
+        font-weight: 800;
+    }
+
+    .info input[type="date"] {
+        width: 100%;
+        max-width: 280px;
+        min-height: 46px;
+        padding: 10px;
+        border: 1px solid #bdcafa;
+        border-radius: 10px;
+        background: white;
+        font-size: 16px;
+    }
+
+    .info input[type="date"]:focus {
+        outline: 2px solid #3157d5;
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 500px) {
+        .info {
+            padding: 14px 9px;
+            font-size: 14px;
+        }
+    }
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<div class="card">
+
+<h2>📋 Attendance</h2>
+
+<div class="info">
+<span>Selected Date: <strong id="date"></strong></span>
+<label for="attendanceDate" style="display:block;margin-top:10px;font-weight:600;">Filter attendance date</label>
+<input id="attendanceDate" type="date" style="margin-top:6px;padding:9px;border:1px solid #bbb;border-radius:8px;font-size:16px;max-width:100%;">
+<p id="dateFilterNote" style="margin:7px 0 0;font-size:12px;color:#555;">Changing the date requires the attendance data password. Future dates are not allowed.</p>
+</div>
+
+<select id="classSelect">
+    <option value="">Select Class</option>
+
+    <option>Girls Diploma</option>
+    <option>Girls I B.Tech</option>
+    <option>Girls II B.Tech</option>
+    <option>Girls III B.Tech</option>
+    <option>Boys Diploma</option>
+    <option>Boys I B.Tech</option>
+    <option>Boys II B.Tech</option>
+    <option>Boys III B.Tech</option>
+</select>
+
+<div class="top-buttons">
+
+    <button class="action copy-present" style="flex:1;" onclick="loadStudents()">
+        Load Students
+    </button>
+
+    <button class="action copy-report" style="flex:1;" onclick="showManageClasses()">
+        Manage Classes
+    </button>
+
+    <button class="action" style="flex:1;background:#6a1b9a;" onclick="openStudentImport()">
+        📥 Import Students (CSV)
+    </button>
+    <input id="studentImportFile" type="file" accept=".csv,.txt,text/csv,text/plain" style="display:none" onchange="importStudentsCSV(event)">
+
+    <select id="attendanceMode">
+        <option value="absent" selected>Mark Absentees</option>
+        <option value="present">Mark Presentees</option>
+    </select>
+
+    <button class="action copy-report" onclick="copyReport()">
+        Copy Report
+    </button>
+
+</div>
+
+<div id="manageBox" style="display:none; margin-top:15px;">
+
+<div class="card">
+
+<h3>Your Classes</h3>
+
+<div id="classList"></div>
+
+<button class="action copy-present" onclick="addClass()">
++ Add New Class
+</button>
+
+<button class="action copy-report" onclick="exportClasses()">
+Export Classes (Backup)
+</button>
+
+<button class="action copy-absent" onclick="importClasses()">
+Import Classes (Restore)
+</button>
+
+</div>
+
+</div>
+
+
+
+<div class="stats">
+<div>✅ Present: <span id="presentCount">66</span></div>
+<div>❌ Absent: <span id="absentCount">0</span></div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="buttons">
+<button class="action copy-present" onclick="copyPresentees()">
+Copy Presentees
+</button>
+
+<button class="action copy-absent" onclick="copyAbsentees()">
+Copy Absentees
+</button>
+
+<button class="action" style="background:#009688;" onclick="saveAttendance()">
+    💾 Save Attendance
+</button>
+
+<button class="action" style="background:#2e7d32;" onclick="saveMonthlyAttendanceToSheets()">
+    📅 Save Monthly Attendance to Google Sheets
+</button>
+
+<button class="action copy-report" onclick="copyReport()">
+Copy Report
+</button>
+
+<button class="action copy-report" onclick="sendWhatsApp()">
+Send in WhatsApp
+</button>
+
+<button class="action" style="background:#1565c0;" onclick="exportAttendanceExcel()">
+📊 Export Selected Date to Excel
+</button>
+
+<label style="display:block;padding:10px;border:1px solid #ddd;border-radius:8px;font-weight:bold;">
+    📅 Monthly Excel Month
+    <input id="attendanceMonth" type="month" style="display:block;width:100%;margin-top:8px;padding:10px;border:1px solid #bbb;border-radius:6px;font-size:16px;">
+    <span style="display:block;font-size:12px;font-weight:normal;margin-top:5px;">Uses the selected class above and its saved attendance history on this browser.</span>
+</label>
+
+<button class="action" style="background:#00695c;" onclick="downloadMonthlyAttendanceExcel()">
+    📥 Download Monthly Excel (.xlsx)
+</button>
+
+<button class="action" style="background:#455a64;" onclick="downloadAttendanceScreenshot()">
+📷 Download Selected Date Summary
+</button>
+</div>
+
+<textarea id="preview" readonly></textarea>
+<p style="margin-top:10px;font-size:13px;color:#555;">Saved history is stored in this browser. Export the Excel file regularly as a backup. The Google Sheet save depends on your Apps Script deployment.</p>
+
+</div>
+</div>
+
+<script>
+
+const students = {
+
+    "Girls Diploma": [
+        { roll: "24352-CM-009", name: "B. THANUJA" },
+        { roll: "24352-CM-057", name: "K. NAKSHATRA" },
+        { roll: "24352-CM-058", name: "K. SIVAPARVATHI" },
+        { roll: "26352-EE--038", name: "M RESHMI" },
+        { roll: "26352-CM-011", name: "B. JHOSHNA" },
+        { roll: "26352-CM-119", name: "V. KOSALYA" },
+        { roll: "26352-CM-124", name: "B SREE LAKSHMI" },
+        { roll: "26352-C   -028", name: "S GNANA PRASURNA" },
+    ],
+
+
+    "Girls I B.Tech": [
+        { roll: "268T1A0215", name: "P.SOWMYA" },
+        { roll: "268T1A0402", name: "A.MANOGNA" },
+        { roll: "268T1A0404", name: "B.BHUVANA" },
+        { roll: "268T1A0429", name: "K LIKITHA NANCHARMMA" },
+        { roll: "268T1A0430", name: "K.CHANDRA HASINI" },
+        { roll: "268T1A0456", name: "S.GAYATRI SAI" },
+        { roll: "268T1A0465", name: "U.AISHWARAYA" },
+        { roll: "268T1A0485", name: "G BHARATHI" },
+        { roll: "268T1A0486", name: "GAVVALAPALLI   CHANDRIKA" },
+        { roll: "268T1A0489", name: "G BHUVANESWARI" },
+        { roll: "268T1A04A0", name: "L YOGASRIJA" },
+        { roll: "268T1A04D3", name: "A PADMAVATHI" },
+        { roll: "268T1A04F6", name: "N VENKATA PRASANA" },
+        { roll: "268T1A0509", name: "B   JAHNAVI" },
+        { roll: "268T1A0523", name: "G.KEERTIKA" },
+        { roll: "268T1A0525", name: "K.JYOSTNA" },
+        { roll: "268T1A0529", name: "A.DIVYA" },
+        { roll: "268T1A0530", name: "KANNA.RAKSHITHA" },
+        { roll: "268T1A0576", name: "G.RUPA SRI" },
+        { roll: "268T1A0578", name: "G.PRASANNA LAKSHMI" },
+        { roll: "268T1A0596", name: "M.SASI PRIYA (AC)" },
+        { roll: "268T1A05A4", name: "N.PRANAVI" },
+        { roll: "268T1A05B1", name: "P.KAVYA SAMKEERTHANA   (AC)" },
+        { roll: "268T1A05B8", name: "R   RAJA LAKSHMI" },
+        { roll: "268T1A05C0", name: "R.HEMA SOWJANYA" },
+        { roll: "268T1A05D8", name: "ADDANKI. HARIKA" },
+        { roll: "268T1A05E6", name: "CH.KARUNYA" },
+        { roll: "268T1A05F7", name: "K   NANDHINI" },
+        { roll: "268T1A05H2", name: "M. TEJASWINI" },
+        { roll: "268T1A05I1", name: "PALAGANI HARSHITHA" },
+        { roll: "268T1A05I2", name: "P.HARSHITHA" },
+        { roll: "268T1A05J1", name: "SK.RESHMA" },
+        { roll: "268T1A05K5", name: "BALINENI.AKHILA" },
+        { roll: "268T1A05K8", name: "B SRAVYA" },
+        { roll: "268T1A05L2", name: "CH   ASWITHA" },
+        { roll: "268T1A05L3", name: "CH   AMURTHA" },
+        { roll: "268T1A05L4", name: "CH.ANUSHA" },
+        { roll: "268T1A05L6", name: "CH.JAHNAVI" },
+        { roll: "268T1A05M5", name: "K.KAVYA" },
+        { roll: "268T1A05M9", name: "M.   MONIKA" },
+        { roll: "268T1A05O0", name: "N   ANUHYA" },
+        { roll: "268T1A05P2", name: "S.POOJA" },
+        { roll: "268T1A05P9", name: "TANUBODDI   SAHITHI" },
+        { roll: "268T1A05Q2", name: "V   SRI LASYA" },
+        { roll: "268T1A05Q5", name: "V   RISHITHA" },
+        { roll: "268T1A4211", name: "J.YASASWINI SRI" },
+        { roll: "268T1A4230", name: "M.TEJA APARNA" },
+        { roll: "268T1A4236", name: "P SAI SANJANA" },
+        { roll: "268T1A4241", name: "P.DEEPIKA" },
+        { roll: "268T1A4249", name: "T.HEMA SYAMALA" },
+        { roll: "268T1A4255", name: "Yarramreddy.JOSHNA" },
+        { roll: "268T1A4258", name: "R.NAGA VARSHA" },
+        { roll: "268T1A4259", name: "N VASANTHA" },
+        { roll: "268T1A4262", name: "Y SANJANA" },
+        { roll: "268T1A4263", name: "G.GEETHIKA" },
+        { roll: "268T1A4264", name: "CHINNAVULA YASWITHA" },
+        { roll: "268T1A4279", name: "D SINURA" },
+        { roll: "268T1A4285", name: "J.JESLY RANI" },
+        { roll: "268T1A4286", name: "J.MEGHANA" },
+        { roll: "268T1A4295", name: "K.UDAYA SREE" },
+        { roll: "268T1A42A3", name: "M.PRAVALLIKA" },
+        { roll: "268T1A42A5", name: "M.SIVA PARVATHI" },
+        { roll: "268T1A42B3", name: "PASUPULETI SATVIKA" },
+        { roll: "268T1A42B6", name: "P TEJASWANI" },
+        { roll: "268T1A42C9", name: "U.PURANDESWARI" },
+        { roll: "268T1A42F0", name: "K SAI VEEKSHITHA" },
+        { roll: "268T1A42G3", name: "T. TABUSRIVANI" },
+        { roll: "268T1A42G7", name: "V ASHLETHA" },
+        { roll: "268T1A42G8", name: "J OJASWINI" },
+        { roll: "268T1A4401", name: "B.DURGA BHAVANI" },
+        { roll: "268T1A4408", name: "D.ROSHITHA" },
+        { roll: "268T1A4414", name: "J MOUNIKA" },
+        { roll: "268T1A4415", name: "JONNALAGADDA NAYANA   SRI" },
+        { roll: "268T1A4419", name: "K.BIDU PRATUSHA" },
+        { roll: "268T1A4441", name: "SK ZUBEDA" },
+        { roll: "268T1A4446", name: "TERA.SARANYA" }
+    ],
+
+
+
+    "Girls II B.Tech": [
+        { roll: "258T1A0453", name: "G RAMA SAHITHI" },
+        { roll: "258T1A04D4", name: "K LOHINI" },
+        { roll: "258T1A04C7", name: "N MEGHANA" },
+        { roll: "258T1A04E9", name: "P V KEERTHIKA" },
+        { roll: "258T1A04F6", name: "S SOWJANYA SRI" },
+        { roll: "258T1A0536", name: "B MADHAVI" },
+        { roll: "258T1A0545", name: "CH SRI DURGANI" },
+        { roll: "258T1A0559", name: "CH NAVYA SRI SAI" },
+        { roll: "258T1A0568", name: "D VARSHA SRI" },
+        { roll: "258T1A05C5", name: "K SAMYUKTHA" },
+        { roll: "258T1A05C9", name: "K SNEHA" },
+        { roll: "258T1A05I3", name: "M MOUNIKA" },
+        { roll: "258T1A05K0", name: "M PRANAVI" },
+        { roll: "258T1A05K3", name: "M LAKSHMI AKSYA" },
+        { roll: "258T1A05P9", name: "P DEEPTHI" },
+        { roll: "258T1A05Q2", name: "P ROHINI" },
+        { roll: "258T1A05Q3", name: "P MAHITHA" },
+        { roll: "258T1A2001", name: "D ASRITHA" },
+        { roll: "258T1A4209", name: "B ORSHINI" },
+        { roll: "258T1A4212", name: "SRI RAMA SWAROOPA" },
+        { roll: "258T1A4264", name: "M MEGHANA" },
+        { roll: "258T1A42A6", name: "SK ARSHIYA" },
+        { roll: "258T1A42B0", name: "SK UMMA SHARIKA" },
+        { roll: "258T1A4412", name: "D ROSHITHA" },
+        { roll: "268T5A04201", name: "D. RUSHITHA REDDY" },
+        { roll: "268T5A04202", name: "D. VADTHA CHOWDARY" },
+        { roll: "268T5A0402", name: "A. TANU SREE" },
+        { roll: "268T5A0502", name: "A. VANDANA" },
+        { roll: "268T5A0536", name: "S. THANUSKA" },
+        { roll: "268T5A0530", name: "P. SRI HARSHINI" },
+        { roll: "268T5A0508", name: "G PAVANI" }
+    ],
+
+
+
+    "Girls III B.Tech": [
+        { roll: "248T1A0454", name: "G SRI LAKSHMI" },
+        { roll: "248T1A0460", name: "G DIVYA" },
+        { roll: "248T1A0477", name: "J BHASHEMATHU" },
+        { roll: "248T1A04A3", name: "M VYSHNAVI" },
+        { roll: "248T1A04E2", name: "HEMA ANJALI" },
+        { roll: "248T1A04E5", name: "P. SRAVANI" },
+        { roll: "248T1A04E6", name: "P RAJA RAJESWARI" },
+        { roll: "248T1A04H1", name: "T NAMETHA" },
+        { roll: "248T1A04H8", name: "V TRIVENI" },
+        { roll: "248T1A0538", name: "B KAVYA" },
+        { roll: "248T1A0587", name: "D SUDHA" },
+        { roll: "248T1A05D7", name: "J VAISNAVI" },
+        { roll: "248T1A05J8", name: "M SRUTHI" },
+        { roll: "248T1A05K5", name: "M HIMABINDHU" },
+        { roll: "248T1A05N6", name: "M. YAMINI SANJANA" },
+        { roll: "248T1A05P7", name: "O. SRUJANA" },
+        { roll: "248T1A05X8", name: "S PRAVALLIKA" },
+        { roll: "248T1A1210", name: "B UMA SRI" },
+        { roll: "248T1A1261", name: "V SRI LAKSHMI" },
+        { roll: "248T1A1263", name: "V DEEPASRI" },
+        { roll: "248T1A4205", name: "B HANSHITHA CHOWDARY" },
+        { roll: "248T1A4437", name: "M HEMABINDU" },
+        { roll: "248T1A4254", name: "SHAIK JASMINE" }
+    ],
+
+
+    "Boys Diploma": [
+        { roll: "25352-EE-046", name: "P YASWANTH   KARTHIK" },
+        { roll: "25352-ME-002", name: "B. RAM CHARAN TEJA" },
+        { roll: "25352-ME-005", name: "D R M VIGNESH" },
+        { roll: "25352-EC-080", name: "N CHANDRA KIRAN" },
+        { roll: "25352-EC-094", name: "P. VARUN SUNDEEP" },
+        { roll: "25352-CM-011", name: "B   SANJAY" },
+        { roll: "25352-CM-020", name: "CH.   AJAY RAM" },
+        { roll: "25352-CM-083", name: "P. L   SATYANARAYANA" },
+        { roll: "26352-CE-003", name: "B. NAGA VARUN" },
+        { roll: "26352-CE-004", name: "B. LAKSHMI NARSIMHA" },
+        { roll: "26352-CE-007", name: "CH. V.V BALA" },
+        { roll: "26352-CE-010", name: "G. EDUKONDALU" },
+        { roll: "26352-CE-017", name: "P. FARHAN KHAN" },
+        { roll: "26352-EE-013", name: "CH. HEMANTH" },
+        { roll: "26352-EE-029", name: "K. DEWAKAR" },
+        { roll: "26352-EC-032", name: "D. SURYA TEJA" },
+        { roll: "26352-EC-033", name: "D. RICKY" },
+        { roll: "26352-EC-034", name: "D. BALA SAIDA" },
+        { roll: "26352-EC-044", name: "G. PAVAN VENKATA SIVA" },
+        { roll: "26352-EC-072", name: "N. PRAVARDHAN" },
+        { roll: "26352-EC-074", name: "M. MURYA" },
+        { roll: "26352-EC-121", name: "T. RAM SAI" },
+        { roll: "26352-CM-012", name: "B. LOHIT SRI" },
+        { roll: "26352-CM-037", name: "J SVN YESWANTH" },
+        { roll: "26352-CM-042", name: "K. HEMA" },
+        { roll: "26352-CM-044", name: "K. DEELIP" },
+        { roll: "26352-CM-048", name: "K. SHALIN RAJ KUMAR" },
+        { roll: "26352-CM-071", name: "M. MOHAN MANI" },
+        { roll: "26352-CM-074", name: "N. YANDI SUSMITH" },
+        { roll: "26352-EC-074", name: "S. ROHITH" }
+    ],
+
+
+
+    "Boys I B.Tech": [
+        { roll: "268T1A0106", name: "D GAGAN RAJ" },
+        { roll: "268T1A0314", name: "L.BHUVANA SAI" },
+        { roll: "268T1A0318", name: "M.VENKAT" },
+        { roll: "268T1A0323", name: "V.BHAR  SIDDARDHA" },
+        { roll: "268T1A0324", name: "Y PR NAGA SUJITH" },
+        { roll: "268T1A0405", name: "B.SANDEEP" },
+        { roll: "268T1A0477", name: "CH.SUJAN" },
+        { roll: "268T1A0478", name: "D.VIJAYA RAJU" },
+        { roll: "268T1A04B3", name: "P.HITESH" },
+        { roll: "268T1A04B8", name: "P. AKENDRA REDDY" },
+        { roll: "268T1A04C7", name: "U.JAYA PRAKASH" },
+        { roll: "268T1A04C9", name: "V.ASRITH" },
+        { roll: "268T1A04D6", name: "A.GNANA VARDHAN" },
+        { roll: "268T1A04E0", name: "D.NAVANEETH" },
+        { roll: "268T1A04E1", name: "E.SUSANTH" },
+        { roll: "268T1A04F7", name: "N.REVANTH" },
+        { roll: "268T1A04H4", name: "V. VIVEK KUMAR" },
+        { roll: "268T1A04H7", name: "P. NAIDU" },
+        { roll: "268T1A0517", name: "E.RAMI REDDY" },
+        { roll: "268T1A0536", name: "K.NAVADEEP" },
+        { roll: "268T1A0553", name: "S. BHAVESH" },
+        { roll: "268T1A0560", name: "T.KRISHNA" },
+        { roll: "268T1A0584", name: "K.MANIKANTA" },
+        { roll: "268T1A0590", name: "L.MANOHAR" },
+        { roll: "268T1A05B7", name: "P.BALAJI" },
+        { roll: "268T1A05C7", name: "S. NITYA PRAKASH" },
+        { roll: "268T1A05E5", name: "CH.DINESH NAGA V U S" },
+        { roll: "268T1A05F2", name: "I. VERA ANJANILYU" },
+        { roll: "268T1A05G5", name: "K.R.L.S PRASAD" },
+        { roll: "268T1A05H4", name: "M.DHANUSH KUMAR" },
+        { roll: "268T1A05J3", name: "SK  V ABHIRAM" },
+        { roll: "268T1A05J8", name: "T ABHILASH" },
+        { roll: "268T1A05K3", name: "A.RAMU" },
+        { roll: "268T1A05L1", name: "CH.RAMA KRISHNA" },
+        { roll: "268T1A05M4", name: "G. KUMAR D MASEH" },
+        { roll: "268T1A05N7", name: "N.NARENDRA YADAV" },
+        { roll: "268T1A05Q8", name: "P. VARUN KUMAR" },
+        { roll: "268T1A4209", name: "G.YOGESH" },
+        { roll: "268T1A4229", name: "M.CHIRANJEEVI" },
+        { roll: "268T1A4250", name: "U . LAKSHMAIAH" },
+        { roll: "268T1A4257", name: "CH GOVA REDDY" },
+        { roll: "268T1A4261", name: "S.PUNEETH" },
+        { roll: "268T1A4265", name: "B.BALAJI" },
+        { roll: "268T1A4296", name: "K.CH SEKHAR" },
+        { roll: "268T1A42A1", name: "M.NANDA KISHORE" },
+        { roll: "268T1A42A6", name: "M. HEMANTH" },
+        { roll: "268T1A42E0", name: "D. MANI SHEKHER" },
+        { roll: "268T1A42E7", name: "K.B.ADHINATH NAIDU" },
+        { roll: "268T1A4405", name: "CH.KARTHIK" }
+    ],
+
+
+
+    "Boys II B.Tech": [
+        { roll: "258T1A0103", name: "B. GOKUL" },
+        { roll: "258T1A0215", name: "M. SAI RAJU" },
+        { roll: "258T1A0223", name: "B.V GANESHAN" },
+        { roll: "258T1A0317", name: "SK ARSHAD" },
+        { roll: "258T1A0413", name: "B RAJKOTI" },
+        { roll: "258T1A0420", name: "B VAMSI" },
+        { roll: "258T1A0432", name: "CH. SAI CHAND" },
+        { roll: "258T1A0441", name: "D NITHIN" },
+        { roll: "258T1A0457", name: "G CHAITANYA" },
+        { roll: "258T1A04C0", name: "N CHANDRA SEKHAR" },
+        { roll: "258T1A04E0", name: "P CHANTI" },
+        { roll: "258T1A05F2", name: "K. UJWAL PRABHAKAR" },
+        { roll: "258T1A05N1", name: "N SIVA VARDHAN REDDY" },
+        { roll: "258T1A05P0", name: "P SIVA GANGARAO" },
+        { roll: "258T1A05W2", name: "S BHARDEAJ" },
+        { roll: "258T1A4214", name: "CH AKASH" },
+        { roll: "258T1A4405", name: "B ASHOK" },
+        { roll: "258T1A4451", name: "SK AWAYS HASAN" },
+        { roll: "268T5A0205", name: "K. AJAY" },
+        { roll: "268T5A0309", name: "T. YASWANTH" },
+        { roll: "268T5A0308", name: "SK NAGOOR" },
+        { roll: "268T5A0412", name: "K. AV SAI TEJA" },
+        { roll: "268T5A0531", name: "S. AJAY" },
+        { roll: "268T5A4408", name: "V. GANESH" },
+        { roll: "268T5A44", name: "S. ABIRAM" },
+        { roll: "268T5A4204", name: "N. RAJESH" },
+        { roll: "268T5A4406", name: "S. RAJGOPAL" }
+    ],
+
+
+    "Boys III B.Tech": [
+        { roll: "248T1A0422", name: "B V. BALA   NAGENDRA" },
+        { roll: "248T1A0474", name: "G. VARUN" },
+        { roll: "248T1A04E3", name: "P ANKA SIVA NAGA SAI" },
+        { roll: "248T1A04E4", name: "P BHANU PRAKASH" },
+        { roll: "248T1A0565", name: "CH V. NITHISH KUMAR" },
+        { roll: "248T1A05AW", name: "Y LEELA SAI MANOHAR" },
+        { roll: "248T1A1247", name: "R KARTHIK" },
+        { roll: "248T1A4403", name: "M. CHITANYA" },
+        { roll: "248T1A4461", name: "V ROHITH KUMAR" },
+        { roll: "258T5A0540", name: "N. SIVA KRISHNA" },
+        { roll: "248T1A04F2", name: "R GOPICHAND" },
+        { roll: "248T1A2029", name: "ABU BAKAR" }
+    ],
+
+};
+
+const specialStudents = {};
+
+// Restore imported/edited class rosters saved in this browser.
+function saveStudentRosters(){
+    try { localStorage.setItem("csmStudentRosters", JSON.stringify(students)); }
+    catch(e) { alert("Could not save the student list in this browser. Please export a classes backup."); }
+}
+try {
+    const savedRosters = JSON.parse(localStorage.getItem("csmStudentRosters") || "null");
+    if(savedRosters && typeof savedRosters === "object"){
+        Object.keys(savedRosters).forEach(cls => {
+            if(Array.isArray(savedRosters[cls])) students[cls] = savedRosters[cls];
+        });
+    }
+} catch(e) { console.warn("Could not load saved student rosters", e); }
+
+function parseCSVRows(text){
+    const rows=[]; let row=[]; let field=""; let quoted=false;
+    text=text.replace(/^\uFEFF/, "");
+    for(let i=0;i<text.length;i++){
+        const ch=text[i];
+        if(ch==='"'){
+            if(quoted && text[i+1]==='"'){ field+='"'; i++; }
+            else quoted=!quoted;
+        } else if(ch===',' && !quoted){ row.push(field.trim()); field=""; }
+        else if((ch==='\n' || ch==='\r') && !quoted){
+            if(ch==='\r' && text[i+1]==='\n') i++;
+            row.push(field.trim()); field="";
+            if(row.some(v=>v!=="")) rows.push(row);
+            row=[];
+        } else field+=ch;
+    }
+    row.push(field.trim());
+    if(row.some(v=>v!=="")) rows.push(row);
+    return rows;
+}
+
+let studentImportAuthorized = false;
+
+function openStudentImport(){
+    const entered=prompt("Enter admin password to import students:");
+    if(entered !== ADMIN_PASSWORD){
+        studentImportAuthorized=false;
+        alert("Incorrect password. Student import is locked.");
+        return;
+    }
+    studentImportAuthorized=true;
+    document.getElementById("studentImportFile").click();
+}
+
+function importStudentsCSV(event){
+    if(!studentImportAuthorized){
+        event.target.value="";
+        alert("Student import is locked. Enter the admin password first.");
+        return;
+    }
+    studentImportAuthorized=false;
+    const file=event.target.files && event.target.files[0];
+    if(!file) return;
+    const className=document.getElementById("classSelect").value;
+    if(!className){
+        alert("Please select the class first, then import the student CSV file.");
+        event.target.value=""; return;
+    }
+    const reader=new FileReader();
+    reader.onload=function(){
+        try{
+            const rows=parseCSVRows(String(reader.result || ""));
+            if(!rows.length) throw new Error("The file is empty.");
+            const norm=v=>String(v||"").trim().toLowerCase().replace(/[ _-]/g,"");
+            const first=rows[0].map(norm);
+            let rollIndex=first.findIndex(v=>["roll","rollno","rollnumber","studentid","id","admissionno","admissionnumber"].includes(v));
+            let nameIndex=first.findIndex(v=>["name","studentname","fullname","student"].includes(v));
+            let start=0;
+            if(rollIndex>=0 || nameIndex>=0){
+                if(rollIndex<0 || nameIndex<0) throw new Error("Please include both Roll No and Name columns in the CSV header.");
+                start=1;
+            } else {
+                // Headerless CSV format: first column = roll number, second = student name.
+                rollIndex=0; nameIndex=1;
+            }
+            const incoming=[];
+            for(let i=start;i<rows.length;i++){
+                const roll=String(rows[i][rollIndex]||"").trim().replace(/^['’]/,"");
+                const name=String(rows[i][nameIndex]||"").trim();
+                if(!roll || !name) continue;
+                if(norm(roll)==="rollno" || norm(name)==="name") continue;
+                incoming.push({roll:roll, name:name});
+            }
+            if(!incoming.length) throw new Error("No valid students found. Check that each row has a roll number and name.");
+            if(!Array.isArray(students[className])) students[className]=[];
+            const existing=new Set(students[className].map(s=>String(s.roll||"").trim().toLowerCase()));
+            let added=0, skipped=0;
+            incoming.forEach(student=>{
+                const key=student.roll.toLowerCase();
+                if(existing.has(key)){ skipped++; return; }
+                students[className].push(student); existing.add(key); added++;
+            });
+            saveStudentRosters();
+            loadStudents();
+            if(document.getElementById("manageBox").style.display!=="none") displayClasses();
+            alert(`Import complete for ${className}.\nAdded: ${added}\nSkipped duplicate roll numbers: ${skipped}\n\nThe student list is saved in this browser.`);
+        } catch(err){ alert("Could not import students: " + err.message); }
+        event.target.value="";
+    };
+    reader.onerror=function(){ alert("Could not read this file. Please try saving it as CSV UTF-8 and importing again."); event.target.value=""; };
+    reader.readAsText(file);
+}
+
+
+    
+let currentStudents=[];
+
+// Cloud attendance is fetched from Google Sheets and cached only for this page session.
+const cloudAttendanceRecords = new Map();
+const cloudLoadsInFlight = new Map();
+
+const absentSet = new Set();
+
+const grid = document.getElementById("grid");
+
+const today = new Date();
+const dd = String(today.getDate()).padStart(2,'0');
+const mm = String(today.getMonth()+1).padStart(2,'0');
+const yyyy = today.getFullYear();
+
+function localISODate(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function getSelectedDateString() {
+    const value = document.getElementById("attendanceDate").value || localISODate();
+    const [y, m, d] = value.split("-");
+    return `${d}/${m}/${y}`;
+}
+
+function isSelectedToday() {
+    return (document.getElementById("attendanceDate").value || localISODate()) === localISODate();
+}
+
+// Previous dates can be edited only after the data password is entered when selecting that date.
+let previousDateEditUnlocked = false;
+let previousDateEditDate = "";
+
+function isPreviousDateEditUnlocked() {
+    return !isSelectedToday() && previousDateEditUnlocked &&
+        previousDateEditDate === (document.getElementById("attendanceDate").value || "");
+}
+
+function isAttendanceEditable() {
+    return isSelectedToday() || isPreviousDateEditUnlocked();
+}
+
+function getRecordsForSelectedDate() {
+    const selectedDate = getSelectedDateString();
+    return getAttendanceHistory().filter(record => record.date === selectedDate);
+}
+
+function getSelectedClassRecord() {
+    const cls = document.getElementById("classSelect").value;
+    const cloudKey = cls + "|" + getSelectedDateString();
+    if (cloudAttendanceRecords.has(cloudKey)) {
+        return cloudAttendanceRecords.get(cloudKey);
+    }
+    return getRecordsForSelectedDate().find(record => record.className === cls) || null;
+}
+
+const attendanceDateInput = document.getElementById("attendanceDate");
+attendanceDateInput.value = localISODate();
+attendanceDateInput.max = localISODate();
+document.getElementById("attendanceMonth").value = localISODate().slice(0, 7);
+let lastAuthorizedAttendanceDate = attendanceDateInput.value;
+document.getElementById("date").textContent = getSelectedDateString();
+
+function handleDateFilterChange() {
+    const requestedDate = attendanceDateInput.value || localISODate();
+    const todayISO = localISODate();
+    if (requestedDate > todayISO) {
+        alert("Future attendance is not allowed. You can select today or a previous date.");
+        attendanceDateInput.value = lastAuthorizedAttendanceDate;
+        return;
+    }
+    if (requestedDate !== lastAuthorizedAttendanceDate) {
+        const entered = prompt("Enter the attendance data password to change the attendance date:");
+        if (entered !== DATA_ACTION_PASSWORD) {
+            alert("Incorrect password. The attendance date was not changed.");
+            attendanceDateInput.value = lastAuthorizedAttendanceDate;
+            return;
+        }
+        lastAuthorizedAttendanceDate = requestedDate;
+        if (requestedDate !== todayISO) {
+            previousDateEditUnlocked = true;
+            previousDateEditDate = requestedDate;
+        } else {
+            previousDateEditUnlocked = false;
+            previousDateEditDate = "";
+        }
+    }
+    document.getElementById("date").textContent = getSelectedDateString();
+    const note = document.getElementById("dateFilterNote");
+    if (isSelectedToday()) {
+        note.textContent = "Today selected. Mark attendance as usual; Excel and reports use today's saved records.";
+    } else if (isPreviousDateEditUnlocked()) {
+        note.textContent = "Previous date unlocked with password. You can correct attendance, then click Save Attendance and Save Monthly Attendance to Google Sheets.";
+    } else {
+        note.textContent = "Previous date is read-only. Enter the attendance data password when selecting it to unlock editing.";
+    }
+    const records = getRecordsForSelectedDate();
+    const cls = document.getElementById("classSelect").value;
+    const record = records.find(r => r.className === cls);
+    if (!isSelectedToday() && cls) {
+        if (record) {
+            document.getElementById("presentCount").textContent = record.present;
+            document.getElementById("absentCount").textContent = record.absent;
+            document.getElementById("preview").value = generateReport();
+        } else {
+            document.getElementById("preview").value = `No saved attendance found for ${getSelectedDateString()}${cls ? " - " + cls : ""}.`;
+        }
+    } else if (currentStudents.length) {
+        updateCounts();
+    }
+    if (document.getElementById("classSelect").value) loadStudents();
+}
+
+attendanceDateInput.addEventListener("change", handleDateFilterChange);
+document.getElementById("classSelect").addEventListener("change", () => {
+    if (document.getElementById("classSelect").value) loadStudents();
+    else { currentStudents = []; absentSet.clear(); grid.innerHTML = ""; updateCounts(); }
+});
+
+function displayNumber(index){
+
+let n=index+1;
+
+
+if(n<=99){
+return String(n).padStart(2,"0");
+}
+
+
+n=n-100;
+
+let letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+return letters[Math.floor(n/10)] + (n%10);
+
+}
+
+function getRollsFromSavedRecord(record, status) {
+    const fullKey = status === "absent" ? "absenteeFullRolls" : "presenteeFullRolls";
+    if (Array.isArray(record[fullKey])) return record[fullKey];
+    // Compatibility with records saved by older versions, which stored only the final two digits.
+    const legacyText = status === "absent" ? (record.absenteeRolls || "") : (record.presenteeRolls || "");
+    const tokens = legacyText.split(/[\s,;\n]+/).map(v => v.trim()).filter(Boolean);
+    return currentStudents.filter(student => tokens.some(token =>
+        token === student.roll || token === student.roll.slice(-2) || token === ("LE-" + student.roll.slice(-2))
+    )).map(student => student.roll);
+}
+
+async function loadStudents(){
+
+    let selected = document.getElementById("classSelect").value;
+
+    if (!selected) {
+        currentStudents = [];
+        absentSet.clear();
+        grid.innerHTML = "";
+        updateCounts();
+        return;
+    }
+
+    // Read Google Sheets before rendering so this device shows attendance saved elsewhere.
+    try {
+        await loadCloudAttendanceForClass(selected);
+    } catch (error) {
+        console.warn("Could not load attendance from Google Sheets; using this device's saved copy.", error);
+    }
+
+    // Ignore an old network response if the user changed class while it was loading.
+    if (selected !== document.getElementById("classSelect").value) return;
+
+    let mode = document.getElementById("attendanceMode").value;
+
+    currentStudents = students[selected] || [];
+
+    grid.innerHTML = "";
+    absentSet.clear();
+
+    const savedRecord = getSelectedClassRecord();
+    const savedAbsentRolls = savedRecord ? getRollsFromSavedRecord(savedRecord, "absent") : [];
+    const savedPresentRolls = savedRecord ? getRollsFromSavedRecord(savedRecord, "present") : [];
+    const isToday = isSelectedToday();
+
+    currentStudents.forEach((student,index)=>{
+
+        let btn = document.createElement("button");
+
+        // Restore the saved status so individual students can be corrected without re-marking the whole class.
+        btn.className = "roll";
+        if (mode === "absent" && savedAbsentRolls.includes(student.roll)) {
+            absentSet.add(index);
+            btn.classList.add("absent");
+        } else if (mode === "present" && savedPresentRolls.includes(student.roll)) {
+            absentSet.add(index);
+            btn.classList.add("present");
+        }
+        if (!isToday && !isPreviousDateEditUnlocked()) btn.title = "Previous-date attendance is read-only until password unlock";
+
+        let count = 0;
+        let leCount = 0;
+
+        for(let j=0; j<=index; j++){
+
+            if(currentStudents[j].roll.includes("T5A")){
+                leCount++;
+            }
+            else{
+                count++;
+            }
+        }
+
+        let displayRoll;
+
+        if(student.roll === "238T1A4214"){
+            displayRoll = student.roll;
+            btn.style.gridColumn = "span 3";
+        }
+        else if(student.roll.includes("T5A")){
+            displayRoll = "LE-" + student.roll.slice(-2);
+        }
+        else{
+            displayRoll = student.roll.slice(-2);
+        }
+
+        btn.innerHTML = `
+            <span class="student-roll">${displayRoll}</span>
+            <span class="student-name">${student.name}</span>
+        `;
+
+        btn.onclick = ()=>{
+            if (!isAttendanceEditable()) {
+                alert("Previous-date attendance is locked. Select the date and enter the attendance data password to unlock editing.");
+                return;
+            }
+            const currentMode = document.getElementById("attendanceMode").value;
+
+            if(currentMode === "absent"){
+
+                // White → Red → White
+                if(absentSet.has(index)){
+
+                    absentSet.delete(index);
+                    btn.classList.remove("absent");
+
+                }
+                else{
+
+                    absentSet.add(index);
+                    btn.classList.add("absent");
+
+                }
+
+            }
+            else if(currentMode === "present"){
+
+                // White → Green → White
+                if(absentSet.has(index)){
+
+                    absentSet.delete(index);
+                    btn.classList.remove("present");
+
+                }
+                else{
+
+                    absentSet.add(index);
+                    btn.classList.add("present");
+
+                }
+
+            }
+
+            updateCounts();
+
+        };
+
+        grid.appendChild(btn);
+
+    });
+
+    updateCounts();
+
+}
+
+grid.innerHTML = "";
+
+//document.getElementById("classSelect")
+//.onchange=loadStudents;
+
+
+//loadStudents();
+
+function updateCounts(){
+
+    const cls = document.getElementById("classSelect").value;
+    const mode = document.getElementById("attendanceMode").value;
+
+    let present;
+    let absent;
+
+    if(mode === "absent"){
+
+        // Mark Absentees mode
+        absent = absentSet.size;
+        present = currentStudents.length - absent;
+
+    }
+    else{
+
+        // Mark Presentees mode
+        present = absentSet.size;
+        absent = currentStudents.length - present;
+
+    }
+
+    const extraStudents = specialStudents[cls]
+        ? specialStudents[cls].length
+        : 0;
+
+    document.getElementById("presentCount").textContent =
+        present + extraStudents;
+
+    document.getElementById("absentCount").textContent =
+        absent;
+
+    generatePreview();
+}
+
+function getAbsentees(){
+
+    let regular = [];
+    let lateral = [];
+
+    const mode = document.getElementById("attendanceMode").value;
+
+    currentStudents.forEach((student,index)=>{
+
+        let isAbsent;
+
+        if(mode === "absent"){
+            // In Mark Absentees mode:
+            // selected = absent
+            isAbsent = absentSet.has(index);
+        }
+        else{
+            // In Mark Presentees mode:
+            // NOT selected = absent
+            isAbsent = !absentSet.has(index);
+        }
+
+        if(isAbsent){
+
+            if(student.roll.includes("T5A")){
+
+                lateral.push(student.roll.slice(-2));
+
+            }
+            else{
+
+                if(student.roll === "238T1A4214"){
+                    regular.push(student.roll);
+                }
+                else{
+                    regular.push(student.roll.slice(-2));
+                }
+
+            }
+
+        }
+
+    });
+
+    return {
+        regular: regular,
+        lateral: lateral
+    };
+}
+
+function sendWhatsApp(){
+    //if (!requireDataActionPassword("send the attendance summary to WhatsApp")) return;
+
+    if(!isSelectedToday() && getRecordsForSelectedDate().length===0){
+        alert(`No saved attendance found for ${getSelectedDateString()}.`);
+        return;
+    }
+    if(isSelectedToday() && currentStudents.length===0 && getRecordsForSelectedDate().length===0){
+        alert("Please load a class or save attendance first.");
+        return;
+    }
+
+    const report = generateReport();
+
+    const whatsappURL =
+    "https://wa.me/?text=" + encodeURIComponent(report);
+
+    window.open(whatsappURL,"_blank");
+
+}
+
+function getPresentees(){
+
+    let regular = [];
+    let lateral = [];
+
+    const mode = document.getElementById("attendanceMode").value;
+
+    currentStudents.forEach((student,index)=>{
+
+        let isPresent;
+
+        if(mode === "absent"){
+            // In Mark Absentees mode:
+            // NOT selected = present
+            isPresent = !absentSet.has(index);
+        }
+        else{
+            // In Mark Presentees mode:
+            // selected = present
+            isPresent = absentSet.has(index);
+        }
+
+        if(isPresent){
+
+            if(student.roll.includes("T5A")){
+
+                lateral.push(student.roll.slice(-2));
+
+            }
+            else{
+
+                if(student.roll === "238T1A4214"){
+                    regular.push(student.roll);
+                }
+                else{
+                    regular.push(student.roll.slice(-2));
+                }
+
+            }
+
+        }
+
+    });
+
+    return {
+        regular: regular,
+        lateral: lateral
+    };
+}
+    
+
+async function copyPresentees() {
+    let text = "";
+
+    if (!isSelectedToday()) {
+        const record = getSelectedClassRecord();
+        if (!record) {
+            alert(`No saved attendance found for ${getSelectedDateString()} and the selected class.`);
+            return;
+        }
+        text = record.presenteeRolls || "";
+
+    } else if (currentStudents.length) {
+        const p = getPresentees();
+        text = p.regular.join(", ");
+
+        if (p.lateral.length) {
+            text += (text ? "\n" : "") + "LE's:- " + p.lateral.join(", ");
+        }
+
+    } else {
+        const record = getSelectedClassRecord();
+        if (record) text = record.presenteeRolls || "";
+    }
+
+    if (!text.trim()) {
+        alert("No presentees found for the selected date/class. Load the class or save attendance first.");
+        return;
+    }
+
+    // Remove the date and display only the last two digits of each roll number.
+    text = text.split("\n").map(line => {
+        if (line.startsWith("LE's:-")) {
+            const rolls = line.replace("LE's:-", "").trim();
+            return "LE's:- " + rolls.split(",")
+                .map(roll => roll.trim().slice(-2))
+                .join(", ");
+        }
+
+        return line.split(",")
+            .map(roll => roll.trim().slice(-2))
+            .join(", ");
+    }).join("\n");
+
+    try {
+        await navigator.clipboard.writeText(text);
+        alert("Presentees copied successfully!\n\n" + text);
+    } catch (error) {
+        console.error(error);
+        alert("Unable to copy presentees. Please copy the roll numbers manually.\n\n" + text);
+    }
+}
+
+
+async function copyAbsentees() {
+    let text = "";
+
+    if (!isSelectedToday()) {
+        const record = getSelectedClassRecord();
+        if (!record) {
+            alert(`No saved attendance found for ${getSelectedDateString()} and the selected class.`);
+            return;
+        }
+        text = record.absenteeRolls || "";
+
+    } else if (currentStudents.length) {
+        const a = getAbsentees();
+        text = a.regular.join(", ");
+
+        if (a.lateral.length) {
+            text += (text ? "\n" : "") + "LE's:- " + a.lateral.join(", ");
+        }
+
+    } else {
+        const record = getSelectedClassRecord();
+        if (record) text = record.absenteeRolls || "";
+    }
+
+    if (!text.trim()) {
+        alert("No absentees found for the selected date/class. Load the class or save attendance first.");
+        return;
+    }
+
+    // Remove the date and display only the last two digits of each roll number.
+    text = text.split("\n").map(line => {
+        if (line.startsWith("LE's:-")) {
+            const rolls = line.replace("LE's:-", "").trim();
+            return "LE's:- " + rolls.split(",")
+                .map(roll => roll.trim().slice(-2))
+                .join(", ");
+        }
+
+        return line.split(",")
+            .map(roll => roll.trim().slice(-2))
+            .join(", ");
+    }).join("\n");
+
+    try {
+        await navigator.clipboard.writeText(text);
+        alert("Absentees copied successfully!\n\n" + text);
+    } catch (error) {
+        console.error(error);
+        alert("Unable to copy absentees. Please copy the roll numbers manually.\n\n" + text);
+    }
+}
+
+
+function saveAttendance(){
+    if (attendanceDateInput.value > localISODate()) {
+        alert("Future attendance is not allowed.");
+        attendanceDateInput.value = localISODate();
+        lastAuthorizedAttendanceDate = attendanceDateInput.value;
+        handleDateFilterChange();
+        return;
+    }
+    if (!isAttendanceEditable()) {
+        alert("Previous-date attendance is locked. Select the date and enter the attendance data password to unlock editing.");
+        return;
+    }
+    const cls = document.getElementById("classSelect").value;
+    if(currentStudents.length === 0 || !cls){
+        alert("Please select a class and click Load Students first.");
+        return;
+    }
+
+    const priorHistory = getAttendanceHistory();
+    const priorIndex = priorHistory.findIndex(r => r.date === getSelectedDateString() && r.className === cls);
+    // Selecting a previous date already required the password, so don't ask twice for that edit.
+    if (!isAttendanceEditable()) {
+        alert("Previous-date attendance is locked. Select the date and enter the attendance data password to unlock editing.");
+        return;
+    }
+
+    const year = cls.startsWith("2nd Year") ? "2nd Year" :
+                 cls.startsWith("3rd Year") ? "3rd Year" :
+                 cls.startsWith("4th Year") ? "4th Year" : "Other";
+    const section = cls.includes("A Sec") ? "CSM-A" :
+                    cls.includes("B Sec") ? "CSM-B" : cls;
+    const p = getPresentees();
+    const a = getAbsentees();
+    const record = {
+        date: getSelectedDateString(),
+        year, section, className: cls,
+        total: currentStudents.length,
+        present: p.regular.length + p.lateral.length,
+        absent: a.regular.length + a.lateral.length,
+        presenteeRolls: [...p.regular, ...p.lateral].join(", "),
+        absenteeRolls: [...a.regular, ...a.lateral].join(", "),
+        presenteeRegularRolls: p.regular.join(", "),
+        presenteeLateralRolls: p.lateral.join(", "),
+        absenteeRegularRolls: a.regular.join(", "),
+        absenteeLateralRolls: a.lateral.join(", "),
+        presenteeFullRolls: currentStudents.filter((student, index) => {
+            const mode = document.getElementById("attendanceMode").value;
+            return mode === "absent" ? !absentSet.has(index) : absentSet.has(index);
+        }).map(student => student.roll),
+        absenteeFullRolls: currentStudents.filter((student, index) => {
+            const mode = document.getElementById("attendanceMode").value;
+            return mode === "absent" ? absentSet.has(index) : !absentSet.has(index);
+        }).map(student => student.roll),
+        savedAt: new Date().toISOString()
+    };
+
+    // Save a local history copy on this browser/device.
+    // Saving the same class twice on the same date updates that day's record.
+    let history = [];
+    try { history = JSON.parse(localStorage.getItem("csmAttendanceHistory") || "[]"); }
+    catch(e) { history = []; }
+    const existing = history.findIndex(r => r.date === record.date && r.className === record.className);
+    if(existing >= 0) history[existing] = record;
+    else history.push(record);
+    localStorage.setItem("csmAttendanceHistory", JSON.stringify(history));
+
+    // Save each student's P/AB status to the monthly class tab as well as the daily summary.
+    const monthlyPayload = {
+        action: "monthlyAttendance",
+        date: record.date,
+        className: cls,
+        year: record.year,
+        section: record.section,
+        total: record.total,
+        present: record.present,
+        absent: record.absent,
+        students: currentStudents.map(student => ({
+            roll: String(student.roll || "").trim(),
+            name: String(student.name || "").trim(),
+            status: record.absenteeFullRolls.includes(student.roll) ? "AB" : "P"
+        }))
+    };
+    const summaryPayload = {
+        date: record.date, year: record.year, section: record.section,
+        total: record.total, present: record.present, absent: record.absent
+    };
+
+    Promise.all([
+        fetch(scriptURL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(monthlyPayload)
+        }),
+        fetch(scriptURL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(summaryPayload)
+        })
+    ]).then(() => {
+        alert("✅ Attendance saved on this device.\\n\\nGoogle Sheets sync requests were sent, including each student's P/AB status.\\n\\nOn another device, open this same webpage, select the class, and click Load Students. Verify the Google Sheet if records do not appear.");
+        cloudLoadsInFlight.delete(cls + "|" + Number(record.date.split("/")[1]));
+        loadStudents();
+    }).catch(error => {
+        alert("✅ Attendance saved on this device.\\n\\n⚠️ Google Sheets could not be contacted. Check your Apps Script URL/deployment and internet connection.");
+        console.error(error);
+    });
+}
+
+async function saveMonthlyAttendanceToSheets(){
+    if (!isAttendanceEditable()) {
+        alert("Previous-date attendance is locked. Select the date and enter the attendance data password to unlock editing.");
+        return;
+    }
+    const cls = document.getElementById("classSelect").value;
+    if (!cls || currentStudents.length === 0) {
+        alert("Please select a class and click Load Students first.");
+        return;
+    }
+
+    const mode = document.getElementById("attendanceMode").value;
+    const rows = currentStudents.map((student, index) => {
+        const isAbsent = mode === "absent" ? absentSet.has(index) : !absentSet.has(index);
+        return {
+            roll: String(student.roll || "").trim(),
+            name: String(student.name || "").trim(),
+            status: isAbsent ? "AB" : "P"
+        };
+    });
+    const payload = {
+        action: "monthlyAttendance",
+        date: getSelectedDateString(),
+        className: cls,
+        year: cls.startsWith("2nd Year") ? "2nd Year" : cls.startsWith("3rd Year") ? "3rd Year" : cls.startsWith("4th Year") ? "4th Year" : "Other",
+        section: cls.includes("A Sec") ? "CSM-A" : cls.includes("B Sec") ? "CSM-B" : cls,
+        total: rows.length,
+        present: rows.filter(r => r.status === "P").length,
+        absent: rows.filter(r => r.status === "AB").length,
+        students: rows
+    };
+
+    const button = Array.from(document.querySelectorAll("button")).find(b => b.getAttribute("onclick") === "saveMonthlyAttendanceToSheets()");
+    if (button) { button.disabled = true; button.textContent = "Saving Monthly Attendance…"; }
+    try {
+        // Apps Script web apps may not expose cross-origin response details to local HTML.
+        // no-cors sends the request but cannot prove that Apps Script completed the write.
+        await fetch(scriptURL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(payload)
+        });
+        alert(`Monthly attendance request sent for ${cls} on ${getSelectedDateString()}.\n\nExpected tab: ${monthlyTabNamePreview(cls)}\n\nPlease open Google Sheets to verify the date column and AB marks were saved.`);
+    } catch (error) {
+        console.error(error);
+        alert("Could not send the monthly attendance request. Check your internet connection and Apps Script deployment URL.");
+    } finally {
+        if (button) { button.disabled = false; button.textContent = "📅 Save Monthly Attendance to Google Sheets"; }
+    }
+}
+
+function monthlyTabNamePreview(className){
+    const [day, month, year] = getSelectedDateString().split("/").map(Number);
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+    const monthName = monthNames[month - 1] || "Month";
+    return `Attendance in ${monthName} - ${className}`;
+}
+
+function getAttendanceHistory(){
+    try { return JSON.parse(localStorage.getItem("csmAttendanceHistory") || "[]"); }
+    catch(e) { return []; }
+}
+
+function normalizeCloudDate(value) {
+    const match = String(value || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) return String(value || "").trim();
+    return String(Number(match[1])).padStart(2, "0") + "/" +
+           String(Number(match[2])).padStart(2, "0") + "/" + match[3];
+}
+
+function loadCloudAttendanceForClass(className) {
+    const selectedISO = document.getElementById("attendanceDate").value || localISODate();
+    const month = Number(selectedISO.split("-")[1]);
+    const requestKey = className + "|" + month;
+
+    // The existing attendance-mode listeners can trigger the same load together.
+    if (cloudLoadsInFlight.has(requestKey)) return cloudLoadsInFlight.get(requestKey);
+
+    const promise = new Promise((resolve, reject) => {
+        const callbackName = "__csmAttendanceCallback_" + Date.now() + "_" +
+                             Math.floor(Math.random() * 1000000);
+        const script = document.createElement("script");
+        let finished = false;
+        let timer;
+
+        const cleanup = () => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            script.remove();
+            try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+        };
+
+        timer = setTimeout(() => {
+            cleanup();
+            reject(new Error("Google Sheets read timed out. Check the Apps Script deployment."));
+        }, 15000);
+
+        window[callbackName] = (data) => {
+            cleanup();
+            try {
+                if (!data || data.ok !== true) {
+                    throw new Error((data && data.error) || "Google Sheets did not return attendance.");
+                }
+
+                if (data.found && Array.isArray(data.headers) && Array.isArray(data.students)) {
+                    const headers = data.headers;
+                    const sheetStudents = data.students;
+                    const history = getAttendanceHistory();
+
+                    headers.slice(2).forEach((rawDate) => {
+                        const date = normalizeCloudDate(rawDate);
+                        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(date)) return;
+
+                        const presentRolls = [];
+                        const absentRolls = [];
+                        sheetStudents.forEach((student) => {
+                            const status = String(
+                                (student.attendance && student.attendance[rawDate]) || ""
+                            ).trim().toUpperCase();
+                            const roll = String(student.roll || "").trim();
+                            if (!roll) return;
+                            if (status === "P") presentRolls.push(roll);
+                            else if (status === "AB") absentRolls.push(roll);
+                        });
+
+                        // Ignore date columns with no attendance values.
+                        if (presentRolls.length + absentRolls.length === 0) return;
+
+                        const record = {
+                            date: date,
+                            className: className,
+                            year: className.startsWith("2nd Year") ? "2nd Year" :
+                                  className.startsWith("3rd Year") ? "3rd Year" :
+                                  className.startsWith("4th Year") ? "4th Year" : "Other",
+                            section: className.includes("A Sec") ? "CSM-A" :
+                                     className.includes("B Sec") ? "CSM-B" : className,
+                            total: presentRolls.length + absentRolls.length,
+                            present: presentRolls.length,
+                            absent: absentRolls.length,
+                            presenteeFullRolls: presentRolls,
+                            absenteeFullRolls: absentRolls,
+                            presenteeRolls: presentRolls.join(", "),
+                            absenteeRolls: absentRolls.join(", "),
+                            presenteeRegularRolls: presentRolls.filter(r => !r.includes("T5A")).join(", "),
+                            presenteeLateralRolls: presentRolls.filter(r => r.includes("T5A")).join(", "),
+                            absenteeRegularRolls: absentRolls.filter(r => !r.includes("T5A")).join(", "),
+                            absenteeLateralRolls: absentRolls.filter(r => r.includes("T5A")).join(", "),
+                            savedAt: new Date().toISOString()
+                        };
+
+                        cloudAttendanceRecords.set(className + "|" + date, record);
+                        const existingIndex = history.findIndex(item =>
+                            item.className === className && item.date === date
+                        );
+                        if (existingIndex >= 0) history[existingIndex] = record;
+                        else history.push(record);
+                    });
+
+                    try {
+                        localStorage.setItem("csmAttendanceHistory", JSON.stringify(history));
+                    } catch (storageError) {
+                        console.warn("Cloud attendance loaded, but local history could not be updated.", storageError);
+                    }
+                }
+                resolve(data);
+            } catch (error) {
+                reject(error);
+            }
+        };
+
+        script.onerror = () => {
+            cleanup();
+            reject(new Error("Could not contact the Google Apps Script web app."));
+        };
+
+        const params = new URLSearchParams({
+            action: "loadMonthlyAttendance",
+            className: className,
+            month: String(month),
+            callback: callbackName,
+            _: String(Date.now())
+        });
+        script.src = scriptURL + "?" + params.toString();
+        document.head.appendChild(script);
+    }).finally(() => {
+        cloudLoadsInFlight.delete(requestKey);
+    });
+
+    cloudLoadsInFlight.set(requestKey, promise);
+    return promise;
+}
+
+function downloadMonthlyAttendanceExcel(){
+    const cls = document.getElementById("classSelect").value;
+    const monthValue = document.getElementById("attendanceMonth").value;
+
+    if (!cls) {
+        alert("Please select a class first.");
+        return;
+    }
+    if (!monthValue || !/^\d{4}-\d{2}$/.test(monthValue)) {
+        alert("Please select the month for the monthly Excel file.");
+        return;
+    }
+    if (typeof XLSX === "undefined") {
+        alert("Excel library did not load. Check your internet connection and try again.");
+        return;
+    }
+
+    // Local attendance history is keyed by dd/MM/yyyy and class name.
+    const allHistory = getAttendanceHistory();
+    const monthRecords = allHistory.filter(record => {
+        if (record.className !== cls || !record.date) return false;
+        const parts = String(record.date).split("/");
+        if (parts.length !== 3) return false;
+        const recordMonth = parts[2] + "-" + String(parts[1]).padStart(2, "0");
+        return recordMonth === monthValue;
+    });
+
+    if (!monthRecords.length) {
+        alert("No saved attendance found for " + cls + " in " + monthValue +
+              ". Save attendance for that month on this browser first.");
+        return;
+    }
+
+    const dateRecords = new Map();
+    monthRecords.forEach(record => dateRecords.set(record.date, record));
+    const dateKeys = Array.from(dateRecords.keys()).sort((a, b) => {
+        const pa = a.split("/").map(Number);
+        const pb = b.split("/").map(Number);
+        return new Date(pa[2], pa[1] - 1, pa[0]) - new Date(pb[2], pb[1] - 1, pb[0]);
+    });
+
+    // Use the current saved roster for student names and roll numbers.
+    const roster = Array.isArray(students[cls]) ? students[cls] : [];
+    if (!roster.length) {
+        alert("No student roster found for " + cls + ". Import or restore the class roster first.");
+        return;
+    }
+
+    function rollSetFromRecord(record, status) {
+        const fullKey = status === "P" ? "presenteeFullRolls" : "absenteeFullRolls";
+        if (Array.isArray(record[fullKey])) {
+            return new Set(record[fullKey].map(roll => String(roll || "").trim().toUpperCase()));
+        }
+
+        // Compatibility with older local history that stored abbreviated roll numbers.
+        const text = status === "P" ? (record.presenteeRolls || "") : (record.absenteeRolls || "");
+        const tokens = String(text).split(/[\\s,;\\n]+/).map(v => v.trim().toUpperCase()).filter(Boolean);
+        const matched = new Set();
+        roster.forEach(student => {
+            const roll = String(student.roll || "").trim().toUpperCase();
+            const suffix = roll.slice(-2);
+            if (tokens.includes(roll) || tokens.includes(suffix) || tokens.includes("LE-" + suffix)) {
+                matched.add(roll);
+            }
+        });
+        return matched;
+    }
+
+    const header = ["Roll No", "Name of the Student", ...dateKeys];
+    const rows = [header];
+
+    roster.forEach(student => {
+        const roll = String(student.roll || "").trim();
+        const name = String(student.name || "").trim();
+        if (!roll) return;
+
+        const row = [roll, name];
+        dateKeys.forEach(date => {
+            const record = dateRecords.get(date);
+            const presentRolls = rollSetFromRecord(record, "P");
+            const absentRolls = rollSetFromRecord(record, "AB");
+            const key = roll.toUpperCase();
+
+            if (presentRolls.has(key)) row.push("P");
+            else if (absentRolls.has(key)) row.push("AB");
+            else row.push("");
+        });
+        rows.push(row);
+    });
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    worksheet["!cols"] = [
+        { wch: 16 },
+        { wch: 30 },
+        ...dateKeys.map(() => ({ wch: 12 }))
+    ];
+    worksheet["!freeze"] = { xSplit: 2, ySplit: 1 };
+    worksheet["!autofilter"] = {
+        ref: XLSX.utils.encode_range({
+            s: { r: 0, c: 0 },
+            e: { r: Math.max(rows.length - 1, 0), c: Math.max(header.length - 1, 0) }
+        })
+    };
+
+    const sheetName = "Monthly Attendance".substring(0, 31);
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    const safeClassName = cls.replace(/[\\\\/:*?"<>|]/g, "_").replace(/\\s+/g, "_");
+    XLSX.writeFile(workbook, "CSM_Monthly_Attendance_" + safeClassName + "_" + monthValue + ".xlsx");
+}
+
+function exportAttendanceExcel(){
+    //if (!requireDataActionPassword("export attendance to Excel")) return;
+    const history = getRecordsForSelectedDate();
+    if(!history.length){
+        alert(`No saved attendance found for ${getSelectedDateString()}. Choose another date or save attendance first.`);
+        return;
+    }
+    if(typeof XLSX === "undefined"){
+        alert("Excel library did not load. Check your internet connection and try again.");
+        return;
+    }
+    const rows = history.map(r => ({
+        Date: r.date, Year: r.year, Section: r.section,
+        Class: r.className, "Total Students": r.total,
+        Present: r.present, Absent: r.absent,
+        "Present Roll Numbers": r.presenteeRolls || "",
+        "Absent Roll Numbers": r.absenteeRolls || ""
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [
+        {wch:13},{wch:12},{wch:12},{wch:24},{wch:15},
+        {wch:10},{wch:10},{wch:45},{wch:45}
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance History");
+    XLSX.writeFile(wb, `CSM_Attendance_${getSelectedDateString().replaceAll("/", "-")}.xlsx`);
+}
+
+
+function downloadAttendanceScreenshot() {
+    const records = getRecordsForSelectedDate();
+
+    if (!records.length) {
+        alert(
+            `No saved attendance found for ${getSelectedDateString()}.\n` +
+            `Please mark and save attendance for the required classes first.`
+        );
+        return;
+    }
+
+    const classOrder = [
+        "2nd Year CSM - A Sec",
+        "2nd Year CSM - B Sec",
+        "3rd Year CSM - A Sec",
+        "4th Year CSM - A Sec",
+        "4th Year CSM - B Sec"
+    ];
+
+    // Include each class only once, using its saved record for this date.
+    const uniqueRecords = new Map();
+    records.forEach(record => {
+        uniqueRecords.set(record.className, record);
+    });
+
+    const sortedRecords = [...uniqueRecords.values()].sort((a, b) => {
+        const ai = classOrder.indexOf(a.className);
+        const bi = classOrder.indexOf(b.className);
+        return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+    });
+
+    const totalStudents = sortedRecords.reduce(
+        (sum, r) => sum + Number(r.total || 0), 0
+    );
+    const totalAbsent = sortedRecords.reduce(
+        (sum, r) => sum + Number(r.absent || 0), 0
+    );
+    const totalPresent = sortedRecords.reduce(
+        (sum, r) => sum + Number(r.present || 0), 0
+    );
+
+    // Create a high-resolution, readable attendance summary image.
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const width = 1400;
+    const left = 60;
+    const right = width - 60;
+    const tableWidth = right - left;
+    const rowHeight = 66;
+    const headerHeight = 76;
+    const titleHeight = 190;
+    const footerHeight = 105;
+
+    canvas.width = width;
+    canvas.height =
+        titleHeight + headerHeight +
+        sortedRecords.length * rowHeight +
+        rowHeight + footerHeight;
+
+    // Background
+    ctx.fillStyle = "#f3f6fc";
+    ctx.fillRect(0, 0, width, canvas.height);
+
+    // Title panel
+    ctx.fillStyle = "#173b78";
+    ctx.fillRect(0, 0, width, 155);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.font = "bold 40px Arial";
+    ctx.fillText("CSM BRANCH ATTENDANCE", width / 2, 62);
+
+    ctx.font = "bold 25px Arial";
+    ctx.fillText(
+        "Date: " + getSelectedDateString(),
+        width / 2,
+        108
+    );
+
+    ctx.fillStyle = "#dce8ff";
+    ctx.font = "18px Arial";
+    ctx.fillText(
+        "DAILY CLASS-WISE SUMMARY",
+        width / 2,
+        138
+    );
+
+    // Column widths
+    const columns = [
+        { label: "CLASS", width: 650, align: "left" },
+        { label: "TOTAL", width: 200, align: "center" },
+        { label: "ABSENTEES", width: 220, align: "center" },
+        { label: "PRESENT", width: 210, align: "center" }
+    ];
+
+    let y = titleHeight;
+    let x = left;
+
+    // Table header
+    ctx.fillStyle = "#dce7fb";
+    ctx.fillRect(left, y, tableWidth, headerHeight);
+
+    ctx.font = "bold 22px Arial";
+    ctx.fillStyle = "#173b78";
+
+    columns.forEach(col => {
+        ctx.textAlign = col.align === "left" ? "left" : "center";
+        const tx = col.align === "left"
+            ? x + 22
+            : x + col.width / 2;
+
+        ctx.fillText(col.label, tx, y + 46);
+        x += col.width;
+    });
+
+    y += headerHeight;
+
+    // Class rows
+    sortedRecords.forEach((record, index) => {
+        const rowPresent = Number(record.present || 0);
+        const rowAbsent = Number(record.absent || 0);
+        const rowTotal = Number(record.total || 0);
+
+        ctx.fillStyle = index % 2 === 0 ? "#ffffff" : "#f7f9ff";
+        ctx.fillRect(left, y, tableWidth, rowHeight);
+
+        ctx.strokeStyle = "#d9e1ef";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(left, y, tableWidth, rowHeight);
+
+        const values = [
+            record.className
+                .replace("2nd Year ", "2nd ")
+                .replace("3rd Year ", "3rd ")
+                .replace("4th Year ", "4th "),
+            rowTotal,
+            rowAbsent,
+            rowPresent
+        ];
+
+        x = left;
+
+        columns.forEach((col, colIndex) => {
+            ctx.textAlign = col.align === "left" ? "left" : "center";
+            ctx.font = colIndex === 0
+                ? "bold 21px Arial"
+                : "bold 23px Arial";
+
+            ctx.fillStyle =
+                colIndex === 2 ? "#d32f2f" :
+                colIndex === 3 ? "#16834a" :
+                "#24324a";
+
+            const tx = col.align === "left"
+                ? x + 22
+                : x + col.width / 2;
+
+            ctx.fillText(String(values[colIndex]), tx, y + 41);
+            x += col.width;
+        });
+
+        y += rowHeight;
+    });
+
+    // Grand total row
+    ctx.fillStyle = "#173b78";
+    ctx.fillRect(left, y, tableWidth, rowHeight);
+
+    const totals = [
+        "GRAND TOTAL",
+        totalStudents,
+        totalAbsent,
+        totalPresent
+    ];
+
+    x = left;
+
+    columns.forEach((col, colIndex) => {
+        ctx.textAlign = col.align === "left" ? "left" : "center";
+        ctx.font = "bold 23px Arial";
+        ctx.fillStyle = "#ffffff";
+
+        const tx = col.align === "left"
+            ? x + 22
+            : x + col.width / 2;
+
+        ctx.fillText(String(totals[colIndex]), tx, y + 41);
+        x += col.width;
+    });
+
+    // Footer
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#64748b";
+    ctx.font = "17px Arial";
+    ctx.fillText(
+        "Generated from saved attendance records",
+        width / 2,
+        y + rowHeight + 55
+    );
+
+    // Download the image
+    const link = document.createElement("a");
+    link.download =
+        "CSM_Attendance_Summary_" +
+        getSelectedDateString().replaceAll("/", "-") +
+        ".png";
+
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+}
+
+
+function generateReport(){
+    const date = getSelectedDateString();
+    const cls = document.getElementById("classSelect").value;
+    const records = getRecordsForSelectedDate().slice();
+    const today = isSelectedToday();
+
+    // Prefer the selected class report, matching the requested WhatsApp format.
+    let record = cls ? records.find(r => r.className === cls) : null;
+    let live = today && cls && currentStudents.length > 0 &&
+               document.getElementById("classSelect").value === cls;
+
+    if (live) {
+        const p = getPresentees();
+        const a = getAbsentees();
+        record = {
+            className: cls,
+            total: currentStudents.length,
+            present: p.regular.length + p.lateral.length,
+            absent: a.regular.length + a.lateral.length,
+            presenteeRolls: [...p.regular, ...p.lateral].join(", "),
+            absenteeRolls: [...a.regular, ...a.lateral].join(", "),
+            presenteeRegularRolls: p.regular.join(", "),
+            presenteeLateralRolls: p.lateral.join(", "),
+            absenteeRegularRolls: a.regular.join(", "),
+            absenteeLateralRolls: a.lateral.join(", ")
+        };
+    }
+
+    if (record) {
+        let regularAbsentees = record.absenteeRegularRolls;
+        let lateralAbsentees = record.absenteeLateralRolls;
+
+        // Older saved records may not have separate LE fields. Reconstruct them
+        // using the selected class roster when available.
+        if (regularAbsentees === undefined || lateralAbsentees === undefined) {
+            const savedRolls = String(record.absenteeRolls || "").split(/,\s*/).filter(Boolean);
+            const roster = students[record.className] || [];
+            const lateralSuffixes = new Set(roster.filter(st => String(st.roll).includes("T5A")).map(st => String(st.roll).slice(-2)));
+            lateralAbsentees = savedRolls.filter(roll => lateralSuffixes.has(roll)).join(", ");
+            regularAbsentees = savedRolls.filter(roll => !lateralSuffixes.has(roll)).join(", ");
+        }
+
+        const shortRollNumbers = rolls =>
+            String(rolls || "")
+                .split(/,\s*/)
+                .map(roll => roll.trim())
+                .filter(Boolean)
+                .map(roll => roll.slice(-2))
+                .join(", ");
+
+        const lines = [
+            "*Attendance*",
+            `*Date:* ${date}`,
+            `*Class:* ${record.className}`,
+            `*Total Students:* ${record.total}`,
+            `*Presentees:* ${record.present}`,
+            "",
+            `*Absentees:* ${record.absent}`,
+            shortRollNumbers(regularAbsentees) || "None"
+        ];
+
+        if (String(lateralAbsentees || "").trim()) {
+            lines.push(`LE's:- ${shortRollNumbers(lateralAbsentees)}`);
+        }
+        return lines.join("\n");
+    }
+
+    // If no class is selected, make one formatted section per saved class.
+    if (!records.length) return `*Attendance*\n*Date:* ${date}\nNo saved attendance found for this date.`;
+    return records.map(r => {
+        const savedRolls = String(r.absenteeRolls || "").split(/,\s*/).filter(Boolean);
+        const roster = students[r.className] || [];
+        const lateralSuffixes = new Set(roster.filter(st => String(st.roll).includes("T5A")).map(st => String(st.roll).slice(-2)));
+        const lateral = r.absenteeLateralRolls !== undefined ? r.absenteeLateralRolls : savedRolls.filter(roll => lateralSuffixes.has(roll)).join(", ");
+        const regular = r.absenteeRegularRolls !== undefined ? r.absenteeRegularRolls : savedRolls.filter(roll => !lateralSuffixes.has(roll)).join(", ");
+        const lines = ["*Attendance*", `*Date:* ${date}`, `*Class:* ${r.className}`, `*Total Students:* ${r.total}`, `*Presentees:* ${r.present}`, "", `*Absentees:* ${r.absent}`, regular || "None"];
+        if (String(lateral || "").trim()) lines.push(`LE's:- ${lateral}`);
+        return lines.join("\n");
+    }).join("\n\n");
+}
+
+async function copyReport(){
+    //if (!requireDataActionPassword("view/copy the attendance report")) return;
+    const report = generateReport();
+    try {
+        await navigator.clipboard.writeText(report);
+        alert("Attendance report copied successfully!\n\n" + report);
+    } catch (error) {
+        console.error(error);
+        alert("Unable to copy automatically. Please copy this report manually:\n\n" + report);
+    }
+}
+
+
+function generatePreview(){
+
+    if(currentStudents.length === 0){
+        document.getElementById("preview").value =
+        "Please select a class and click 'Load Students'.";
+        return;
+    }
+
+    document.getElementById("preview").value = generateReport();
+}
+
+// BASIC ADMIN PASSWORD PROTECTION for Manage Classes.
+// Change this password before using the page: set ADMIN_PASSWORD below.
+const ADMIN_PASSWORD = "Prasad22";
+// Separate password for saving attendance, Excel exports, and attendance summaries.
+// Change this value to your own password before sharing the HTML file.
+const DATA_ACTION_PASSWORD = "12";
+
+function requireDataActionPassword(actionName){
+    const entered = prompt(`Enter the data-action password to ${actionName}:`);
+    if (entered !== DATA_ACTION_PASSWORD){
+        alert("Incorrect password. This action is locked.");
+        return false;
+    }
+    return true;
+}
+
+let adminSessionUnlocked = false;
+
+function requireClassAdmin(){
+    if(!adminSessionUnlocked){
+        alert("Manage Classes is locked. Open Manage Classes and enter the admin password first.");
+        return false;
+    }
+    return true;
+}
+
+function showManageClasses(){
+    const box=document.getElementById("manageBox");
+
+    if(box.style.display==="none" || box.style.display===""){
+        const entered=prompt("Enter admin password to manage classes:");
+        if(entered !== ADMIN_PASSWORD){
+            adminSessionUnlocked=false;
+            alert("Incorrect password. Manage Classes remains locked.");
+            return;
+        }
+        adminSessionUnlocked=true;
+        box.style.display="block";
+        displayClasses();
+    } else {
+        box.style.display="none";
+        adminSessionUnlocked=false;
+    }
+}
+
+
+function displayClasses(){
+
+    let list=document.getElementById("classList");
+
+    list.innerHTML="";
+
+
+    Object.keys(students).forEach(cls=>{
+
+
+        let div=document.createElement("div");
+
+        div.style.padding="10px";
+        div.style.borderBottom="1px solid #ddd";
+
+
+        div.innerHTML=`
+
+        <b>${cls}</b><br>
+
+        ${students[cls].length} students · 1 roll group
+
+        <br>
+
+        <button onclick="editClass('${cls}')">
+        Edit
+        </button>
+
+        <button onclick="deleteClass('${cls}')">
+        Delete
+        </button>
+
+        `;
+
+
+        list.appendChild(div);
+
+
+    });
+
+
+}
+
+
+function addClass(){
+    if(!requireClassAdmin()) return;
+
+
+    let name=prompt("Enter Class Name:");
+
+    if(name){
+
+        students[name]=students[name] || [];
+        const selector=document.getElementById("classSelect");
+        if(!Array.from(selector.options).some(option=>option.value===name)){
+            const option=document.createElement("option"); option.value=name; option.textContent=name; selector.appendChild(option);
+        }
+        selector.value=name;
+        saveStudentRosters();
+        displayClasses();
+
+    }
+
+}
+
+
+
+function deleteClass(cls){
+    if(!requireClassAdmin()) return;
+
+
+    if(confirm("Delete "+cls+" ?")){
+
+        delete students[cls];
+
+        displayClasses();
+
+    }
+
+}
+
+
+
+function editClass(cls){
+    if(!requireClassAdmin()) return;
+
+
+    alert("Edit students for "+cls);
+
+}
+
+
+
+function exportClasses(){
+    if(!requireClassAdmin()) return;
+
+
+    saveStudentRosters();
+    let data=JSON.stringify(students);
+
+    let blob=new Blob([data],{type:"application/json"});
+
+    let a=document.createElement("a");
+
+    a.href=URL.createObjectURL(blob);
+
+    a.download="classes_backup.json";
+
+    a.click();
+
+}
+
+
+
+function importClasses(){
+    if(!requireClassAdmin()) return;
+
+
+    alert("Import option can be added using file upload");
+
+}
+
+document.getElementById("attendanceMode")
+.addEventListener("change", loadStudents);
+
+const attendanceMode = document.getElementById("attendanceMode");
+
+function updateModeColor(){
+
+    if(attendanceMode.value === "absent"){
+
+        attendanceMode.style.background = "#ffebee";
+        attendanceMode.style.color = "#d32f2f";
+        attendanceMode.style.borderColor = "#f44336";
+
+    }
+    else{
+
+        attendanceMode.style.background = "#e8f5e9";
+        attendanceMode.style.color = "#2e7d32";
+        attendanceMode.style.borderColor = "#4caf50";
+
+    }
+
+}
+
+attendanceMode.addEventListener("change", function(){
+
+    updateModeColor();
+    loadStudents();
+
+});
+
+updateModeColor();
+
+</script>
+
+<footer>
+    </br>
+    </br>
+    <p></p>
+    <p>© 2026 All Rights Reserved</p>
+</footer>
+
+</body>
+</html>
