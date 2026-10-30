@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CSM Attendance</title>
+<title>Library Attendance</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
@@ -169,7 +169,7 @@ h2{
 }
 
 .student-roll{
-    font-size:15px;
+    font-size:12px;
     font-weight:bold;
     line-height:13px;
     text-align:center;
@@ -1513,7 +1513,7 @@ function getRollsFromSavedRecord(record, status) {
     const legacyText = status === "absent" ? (record.absenteeRolls || "") : (record.presenteeRolls || "");
     const tokens = legacyText.split(/[\s,;\n]+/).map(v => v.trim()).filter(Boolean);
     return currentStudents.filter(student => tokens.some(token =>
-        token === student.roll || token === student.roll.slice(-2) || token === ("LE-" + student.roll.slice(-2))
+        token === student.roll || token === student.roll.slice(-12) || token === ("LE-" + student.roll.slice(-12))
     )).map(student => student.roll);
 }
 
@@ -1586,10 +1586,10 @@ async function loadStudents(){
             btn.style.gridColumn = "span 3";
         }
         else if(student.roll.includes("T5A")){
-            displayRoll = "LE-" + student.roll.slice(-2);
+            displayRoll = "LE-" + student.roll.slice(-12);
         }
         else{
-            displayRoll = student.roll.slice(-2);
+            displayRoll = student.roll.slice(-12);
         }
 
         btn.innerHTML = `
@@ -1721,7 +1721,7 @@ function getAbsentees(){
 
             if(student.roll.includes("T5A")){
 
-                lateral.push(student.roll.slice(-2));
+                lateral.push(student.roll.slice(-12));
 
             }
             else{
@@ -1730,7 +1730,7 @@ function getAbsentees(){
                     regular.push(student.roll);
                 }
                 else{
-                    regular.push(student.roll.slice(-2));
+                    regular.push(student.roll.slice(-12));
                 }
 
             }
@@ -1792,7 +1792,7 @@ function getPresentees(){
 
             if(student.roll.includes("T5A")){
 
-                lateral.push(student.roll.slice(-2));
+                lateral.push(student.roll.slice(-12));
 
             }
             else{
@@ -1801,7 +1801,7 @@ function getPresentees(){
                     regular.push(student.roll);
                 }
                 else{
-                    regular.push(student.roll.slice(-2));
+                    regular.push(student.roll.slice(-12));
                 }
 
             }
@@ -1851,12 +1851,12 @@ async function copyPresentees() {
         if (line.startsWith("LE's:-")) {
             const rolls = line.replace("LE's:-", "").trim();
             return "LE's:- " + rolls.split(",")
-                .map(roll => roll.trim().slice(-2))
+                .map(roll => roll.trim().slice(-12))
                 .join(", ");
         }
 
         return line.split(",")
-            .map(roll => roll.trim().slice(-2))
+            .map(roll => roll.trim().slice(-12))
             .join(", ");
     }).join("\n");
 
@@ -1904,12 +1904,12 @@ async function copyAbsentees() {
         if (line.startsWith("LE's:-")) {
             const rolls = line.replace("LE's:-", "").trim();
             return "LE's:- " + rolls.split(",")
-                .map(roll => roll.trim().slice(-2))
+                .map(roll => roll.trim().slice(-12))
                 .join(", ");
         }
 
         return line.split(",")
-            .map(roll => roll.trim().slice(-2))
+            .map(roll => roll.trim().slice(-12))
             .join(", ");
     }).join("\n");
 
@@ -2287,7 +2287,7 @@ function downloadMonthlyAttendanceExcel(){
         const matched = new Set();
         roster.forEach(student => {
             const roll = String(student.roll || "").trim().toUpperCase();
-            const suffix = roll.slice(-2);
+            const suffix = roll.slice(-12);
             if (tokens.includes(roll) || tokens.includes(suffix) || tokens.includes("LE-" + suffix)) {
                 matched.add(roll);
             }
@@ -2622,7 +2622,7 @@ function generateReport(){
                 const isLateral = roll.includes("T5A");
                 if (lateralOnly !== null && isLateral !== lateralOnly) return false;
                 return roll.toLowerCase() === value.toLowerCase() ||
-                       roll.slice(-2).toLowerCase() === value.toLowerCase();
+                       roll.slice(-12).toLowerCase() === value.toLowerCase();
             });
 
             if (student) {
@@ -2648,12 +2648,12 @@ function generateReport(){
                 .split(/,\s*/).map(value => value.trim()).filter(Boolean);
             const lateralSuffixes = new Set(
                 roster.filter(st => String(st.roll).includes("T5A"))
-                      .map(st => String(st.roll).slice(-2))
+                      .map(st => String(st.roll).slice(-12))
             );
             lateralAbsentees = savedRolls
-                .filter(roll => lateralSuffixes.has(roll.slice(-2))).join(", ");
+                .filter(roll => lateralSuffixes.has(roll.slice(-12))).join(", ");
             regularAbsentees = savedRolls
-                .filter(roll => !lateralSuffixes.has(roll.slice(-2))).join(", ");
+                .filter(roll => !lateralSuffixes.has(roll.slice(-12))).join(", ");
         }
 
         // For today's live attendance, use the selected student records directly
