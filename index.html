@@ -2588,8 +2588,7 @@ function generateReport(){
 
     // Prefer the selected class report, matching the requested WhatsApp format.
     let record = cls ? records.find(r => r.className === cls) : null;
-    let live = today && cls && currentStudents.length > 0 &&
-               document.getElementById("classSelect").value === cls;
+    const live = today && cls && currentStudents.length > 0;
 
     if (live) {
         const p = getPresentees();
@@ -2608,57 +2607,91 @@ function generateReport(){
         };
     }
 
-    if (record) {
-        let regularAbsentees = record.absenteeRegularRolls;
-        let lateralAbsentees = record.absenteeLateralRolls;
+    // Convert saved short roll suffixes back to full roll numbers and names.
+    function fullAbsenteeDetails(rolls, roster, lateralOnly){
+        const entries = String(rolls || "")
+            .split(/,\s*/)
+            .map(value => value.trim())
+            .filter(Boolean);
+        const used = new Set();
+
+        return entries.map(value => {
+            let student = roster.find((st, index) => {
+                if (used.has(index)) return false;
+                const roll = String(st.roll || "").trim();
+                const isLateral = roll.includes("T5A");
+                if (lateralOnly !== null && isLateral !== lateralOnly) return false;
+                return roll.toLowerCase() === value.toLowerCase() ||
+                       roll.slice(-2).toLowerCase() === value.toLowerCase();
+            });
+
+            if (student) {
+                const index = roster.indexOf(student);
+                used.add(index);
+                return `${student.roll} - ${student.name}`;
+            }
+
+            // Keep an unmatched value visible rather than silently dropping it.
+            return value;
+        });
+    }
+
+    function buildClassReport(r){
+        const roster = students[r.className] || [];
+        let regularAbsentees = r.absenteeRegularRolls;
+        let lateralAbsentees = r.absenteeLateralRolls;
 
         // Older saved records may not have separate LE fields. Reconstruct them
-        // using the selected class roster when available.
+        // from the saved roll list and the roster.
         if (regularAbsentees === undefined || lateralAbsentees === undefined) {
-            const savedRolls = String(record.absenteeRolls || "").split(/,\s*/).filter(Boolean);
-            const roster = students[record.className] || [];
-            const lateralSuffixes = new Set(roster.filter(st => String(st.roll).includes("T5A")).map(st => String(st.roll).slice(-2)));
-            lateralAbsentees = savedRolls.filter(roll => lateralSuffixes.has(roll)).join(", ");
-            regularAbsentees = savedRolls.filter(roll => !lateralSuffixes.has(roll)).join(", ");
+            const savedRolls = String(r.absenteeRolls || "")
+                .split(/,\s*/).map(value => value.trim()).filter(Boolean);
+            const lateralSuffixes = new Set(
+                roster.filter(st => String(st.roll).includes("T5A"))
+                      .map(st => String(st.roll).slice(-2))
+            );
+            lateralAbsentees = savedRolls
+                .filter(roll => lateralSuffixes.has(roll.slice(-2))).join(", ");
+            regularAbsentees = savedRolls
+                .filter(roll => !lateralSuffixes.has(roll.slice(-2))).join(", ");
         }
 
-        const shortRollNumbers = rolls =>
-            String(rolls || "")
-                .split(/,\s*/)
-                .map(roll => roll.trim())
-                .filter(Boolean)
-                .map(roll => roll.slice(-2))
-                .join(", ");
+        // For today's live attendance, use the selected student records directly
+        // so the full roll numbers and names are retained without suffix matching.
+        let absenteeDetails;
+        if (today && live && r.className === cls) {
+            const mode = document.getElementById("attendanceMode").value;
+            const absentStudents = currentStudents.filter((student, index) => {
+                return mode === "absent"
+                    ? absentSet.has(index)
+                    : !absentSet.has(index);
+            });
+            absenteeDetails = absentStudents.map(student => `${student.roll} - ${student.name}`);
+        } else {
+            absenteeDetails = [
+                ...fullAbsenteeDetails(regularAbsentees, roster, false),
+                ...fullAbsenteeDetails(lateralAbsentees, roster, true)
+            ];
+        }
 
         const lines = [
             "*Attendance*",
             `*Date:* ${date}`,
-            `*Class:* ${record.className}`,
-            `*Total Students:* ${record.total}`,
-            `*Presentees:* ${record.present}`,
+            `*Class:* ${r.className}`,
+            `*Total Students:* ${r.total}`,
+            `*Presentees:* ${r.present}`,
             "",
-            `*Absentees:* ${record.absent}`,
-            shortRollNumbers(regularAbsentees) || "None"
+            `*Absentees:* ${r.absent}`,
+            absenteeDetails.length ? absenteeDetails.join("\n") : "None"
         ];
-
-        if (String(lateralAbsentees || "").trim()) {
-            lines.push(`LE's:- ${shortRollNumbers(lateralAbsentees)}`);
-        }
         return lines.join("\n");
     }
 
+    if (record) return buildClassReport(record);
+
     // If no class is selected, make one formatted section per saved class.
     if (!records.length) return `*Attendance*\n*Date:* ${date}\nNo saved attendance found for this date.`;
-    return records.map(r => {
-        const savedRolls = String(r.absenteeRolls || "").split(/,\s*/).filter(Boolean);
-        const roster = students[r.className] || [];
-        const lateralSuffixes = new Set(roster.filter(st => String(st.roll).includes("T5A")).map(st => String(st.roll).slice(-2)));
-        const lateral = r.absenteeLateralRolls !== undefined ? r.absenteeLateralRolls : savedRolls.filter(roll => lateralSuffixes.has(roll)).join(", ");
-        const regular = r.absenteeRegularRolls !== undefined ? r.absenteeRegularRolls : savedRolls.filter(roll => !lateralSuffixes.has(roll)).join(", ");
-        const lines = ["*Attendance*", `*Date:* ${date}`, `*Class:* ${r.className}`, `*Total Students:* ${r.total}`, `*Presentees:* ${r.present}`, "", `*Absentees:* ${r.absent}`, regular || "None"];
-        if (String(lateral || "").trim()) lines.push(`LE's:- ${lateral}`);
-        return lines.join("\n");
-    }).join("\n\n");
+    return records.map(buildClassReport).join("\n\n");
 }
 
 async function copyReport(){
